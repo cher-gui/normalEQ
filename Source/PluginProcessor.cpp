@@ -95,6 +95,16 @@ void NormalEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+    juce::dsp::ProcessSpec spec;
+    
+    spec.maximumBlockSize = samplesPerBlock;
+    
+    spec.numChannels = 1;
+    
+    spec.sampleRate = sampleRate;
+    
+    leftChain.prepare(spec);
+    rightChain.prepare(spec);
 }
 
 void NormalEQAudioProcessor::releaseResources()
@@ -135,27 +145,32 @@ void NormalEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
+    // dsp::ProcessorChains  dsp::ProcessContextReplacing<>
+    // 프로세스 체인에서는 체인의 링크를 따라 오디오를 실행하기 위해 프로세스 컨텍스트가 필요함
+    // 프로세싱 컨텍스트를 만들기 위해서는 오디오 블록과 함께 전달해야 함
+    
+    // dsp::AudioBlock<> 인스턴스들은 juce::AudioBuffer<>와 함께 이루어진다.
+    // 프로세스 블록 함수는 호스트에 의해 호출되고, 채널의 수에 따라 각각 버퍼가 주어진다.
+    // 따라서 이 버퍼를 통해 좌, 우 채널로 추출한다. channel {0, 1}
+
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
-
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
-
-        // ..do something to the data...
-    }
+    
+    juce::dsp::AudioBlock<float> block(buffer); // 현재 버퍼로 블록이 초기화 됨
+    
+    
+    // audioBlock<> 클래스에서 수 많은 블록이 담긴 버퍼로부터 개별 채널을 추출할 수 있는 도우미 기능
+    auto leftBlock = block.getSingleChannelBlock(0);
+    auto rightBlock = block.getSingleChannelBlock(1);
+    
+    // 이제 각 개별 채널 블록이 있으므로 그들을 래핑하는 컨텍스트를 만들어 줌 = 체인에서 사용 가능하도록
+    juce::dsp::ProcessContextReplacing<float> leftContext(leftBlock);
+    juce::dsp::ProcessContextReplacing<float> rightContext(rightBlock);
+    
+    leftChain.process(leftContext);
+    rightChain.process(rightContext);
+    
+    // 현재는 필터의 계수를 아무것도 설정하지 않았으므로 아무것도 하지 않는다.
 }
 
 //==============================================================================
