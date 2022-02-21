@@ -110,7 +110,25 @@ void NormalEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
     // 체인 세팅을 가져옴
     auto chainSettings = getChainSettings(apvts);
     
+
+    // 정의를 보면 order의 1/2만큼의 계수를 얻게 된다
+    // static ReferenceCountedArray<IIRCoefficients> designIIRHighpassHighOrderButterworthMethod \
+    // (FloatType frequency, double sampleRate, int order);
+    // 따라서 2 * (order + i) = 필터[i]의 계수 값
     // 피크의 계수를 설정
+    auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq,
+                                                                                                       getSampleRate(),
+                                                                                                       2 * (chainSettings.lowCutSlope) + 1);
+    auto& leftLowCut = leftChain.get<ChainPosition::LowCut>();
+    updateCutFilter(leftLowCut, cutCoefficients, chainSettings.lowCutSlope);
+    
+    auto& rightLowCut = rightChain.get<ChainPosition::LowCut>();
+    updateCutFilter(rightLowCut, cutCoefficients, chainSettings.lowCutSlope);
+    
+    
+    /* move to updatePeakFilter()
+    
+     
     auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(sampleRate,
                                                                                 chainSettings.peakFreq,
                                                                                 chainSettings.peakQuality,
@@ -120,112 +138,11 @@ void NormalEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
     // enum을 통해 인덱스를 정의해서 전달하는데, 역참조임을 유의(오디오 콜백 힙에 할당하는 것이 좋지 않은 디자인이라고)
     *leftChain.get<ChainPosition::Peak>().coefficients = *peakCoefficients;
     *rightChain.get<ChainPosition::Peak>().coefficients = *peakCoefficients;
+     
+    */
     
-    // 정의를 보면 order의 1/2만큼의 계수를 얻게 된다
-    // static ReferenceCountedArray<IIRCoefficients> designIIRHighpassHighOrderButterworthMethod \
-    // (FloatType frequency, double sampleRate, int order);
-    // 따라서 2 * (order + i) = 필터[i]의 계수 값
-    
-    auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq,
-                                                                                                       sampleRate,
-                                                                                                       2 * (chainSettings.lowCutSlope) + 1);
-    auto& leftLowCut = leftChain.get<ChainPosition::LowCut>();
-    
-    leftLowCut.setBypassed<0>(true);
-    leftLowCut.setBypassed<1>(true);
-    leftLowCut.setBypassed<2>(true);
-    leftLowCut.setBypassed<3>(true);
-    
-    switch( chainSettings.lowCutSlope )
-    {
-        case Slope_12:
-        {
-            // 역참조
-            *leftLowCut.get<0>().coefficients = *cutCoefficients[0];
-            leftLowCut.setBypassed<0>(false);
-            break;
-        }
-        case Slope_24:
-        {
-            *leftLowCut.get<0>().coefficients = *cutCoefficients[0];
-            leftLowCut.setBypassed<0>(false);
-            *leftLowCut.get<1>().coefficients = *cutCoefficients[1];
-            leftLowCut.setBypassed<1>(false);
-            break;
-        }
-        case Slope_36:
-        {
-            *leftLowCut.get<0>().coefficients = *cutCoefficients[0];
-            leftLowCut.setBypassed<0>(false);
-            *leftLowCut.get<1>().coefficients = *cutCoefficients[1];
-            leftLowCut.setBypassed<1>(false);
-            *leftLowCut.get<2>().coefficients = *cutCoefficients[2];
-            leftLowCut.setBypassed<2>(false);
-            break;
-        }
-        case Slope_48:
-        {
-            *leftLowCut.get<0>().coefficients = *cutCoefficients[0];
-            leftLowCut.setBypassed<0>(false);
-            *leftLowCut.get<1>().coefficients = *cutCoefficients[1];
-            leftLowCut.setBypassed<1>(false);
-            *leftLowCut.get<2>().coefficients = *cutCoefficients[2];
-            leftLowCut.setBypassed<2>(false);
-            *leftLowCut.get<3>().coefficients = *cutCoefficients[3];
-            leftLowCut.setBypassed<3>(false);
-            break;
-        }
-    }
-    
-    
-    auto& rightLowCut = rightChain.get<ChainPosition::LowCut>();
-    
-    rightLowCut.setBypassed<0>(true);
-    rightLowCut.setBypassed<1>(true);
-    rightLowCut.setBypassed<2>(true);
-    rightLowCut.setBypassed<3>(true);
-    
-    switch( chainSettings.lowCutSlope )
-    {
-        case Slope_12:
-        {
-            // 역참조
-            *rightLowCut.get<0>().coefficients = *cutCoefficients[0];
-            rightLowCut.setBypassed<0>(false);
-            break;
-        }
-        case Slope_24:
-        {
-            *rightLowCut.get<0>().coefficients = *cutCoefficients[0];
-            rightLowCut.setBypassed<0>(false);
-            *rightLowCut.get<1>().coefficients = *cutCoefficients[1];
-            rightLowCut.setBypassed<1>(false);
-            break;
-        }
-        case Slope_36:
-        {
-            *rightLowCut.get<0>().coefficients = *cutCoefficients[0];
-            rightLowCut.setBypassed<0>(false);
-            *rightLowCut.get<1>().coefficients = *cutCoefficients[1];
-            rightLowCut.setBypassed<1>(false);
-            *rightLowCut.get<2>().coefficients = *cutCoefficients[2];
-            rightLowCut.setBypassed<2>(false);
-            break;
-        }
-        case Slope_48:
-        {
-            *rightLowCut.get<0>().coefficients = *cutCoefficients[0];
-            rightLowCut.setBypassed<0>(false);
-            *rightLowCut.get<1>().coefficients = *cutCoefficients[1];
-            rightLowCut.setBypassed<1>(false);
-            *rightLowCut.get<2>().coefficients = *cutCoefficients[2];
-            rightLowCut.setBypassed<2>(false);
-            *rightLowCut.get<3>().coefficients = *cutCoefficients[3];
-            rightLowCut.setBypassed<3>(false);
-            break;
-        }
-    }
-    // 추후 리팩토링을 통해 코드의 반복을 축소시킬 수 있다.
+    //auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq,sampleRate, 2 * (chainSettings.lowCutSlope) + 1);
+    //auto& leftLowCut = leftChain.get<ChainPosition::LowCut>();
     
 }
 
@@ -285,17 +202,27 @@ void NormalEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(getSampleRate(),
                                                                                 chainSettings.peakFreq,
                                                                                 chainSettings.peakQuality,
-                                                                                juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
+                                                                                juce::Decibels::decibelsToGain
+                                                                                (chainSettings.peakGainInDecibels));
     
+    updatePeakFilter(chainSettings);
+    /*
     *leftChain.get<ChainPosition::Peak>().coefficients = *peakCoefficients;
     *rightChain.get<ChainPosition::Peak>().coefficients = *peakCoefficients;
-    
-    
+    */
+     
     auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq,
                                                                                                        getSampleRate(),
                                                                                                        2 * (chainSettings.lowCutSlope) + 1);
     auto& leftLowCut = leftChain.get<ChainPosition::LowCut>();
+    updateCutFilter(leftLowCut, cutCoefficients, chainSettings.lowCutSlope);
     
+    auto& rightLowCut = rightChain.get<ChainPosition::LowCut>();
+    updateCutFilter(rightLowCut, cutCoefficients, chainSettings.lowCutSlope);
+    
+    
+    /* move to updateCoefficents
+     
     leftLowCut.setBypassed<0>(true);
     leftLowCut.setBypassed<1>(true);
     leftLowCut.setBypassed<2>(true);
@@ -390,7 +317,7 @@ void NormalEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
             break;
         }
     }
-    
+    */
     juce::dsp::AudioBlock<float> block(buffer); // 현재 버퍼로 블록이 초기화 됨
     
     
@@ -434,7 +361,6 @@ void NormalEQAudioProcessor::setStateInformation (const void* data, int sizeInBy
     // whose contents will have been created by the getStateInformation() call.
 }
 
-
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
 {
     ChainSettings settings;
@@ -455,6 +381,31 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
     return settings;
 }
 
+
+void NormalEQAudioProcessor::updatePeakFilter(const ChainSettings &chainSettings)
+{
+    // 피크의 계수를 설정
+    auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(getSampleRate(),
+                                                                                chainSettings.peakFreq,
+                                                                                chainSettings.peakQuality,
+                                                                                juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
+    
+    // chain get 함수는 체인이 가지는 인덱스를 필요로 한다.
+    // enum을 통해 인덱스를 정의해서 전달하는데, 역참조임을 유의(오디오 콜백 힙에 할당하는 것이 좋지 않은 디자인이라고)
+    // *leftChain.get<ChainPosition::Peak>().coefficients = *peakCoefficients;
+    // *rightChain.get<ChainPosition::Peak>().coefficients = *peakCoefficients;
+    
+    // 리팩토링
+    updateCoefficients(leftChain.get<ChainPosition::Peak>().coefficients, peakCoefficients);
+    updateCoefficients(rightChain.get<ChainPosition::Peak>().coefficients, peakCoefficients);
+}
+
+void NormalEQAudioProcessor::updateCoefficients(Coefficients &old, const Coefficients &replacements)
+{
+    //
+    *old = *replacements;
+}
+
 juce::AudioProcessorValueTreeState::ParameterLayout NormalEQAudioProcessor::createParameterLayout()
 {
     // AudioProcessorParameter Diagram 참고
@@ -462,17 +413,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout NormalEQAudioProcessor::crea
     
     layout.add(std::make_unique<juce::AudioParameterFloat>("LowCut Freq",
                                                            "LowCut Freq",
-                                                           juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 1.f),
+                                                           juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f),
                                                            20.f));
     
     layout.add(std::make_unique<juce::AudioParameterFloat>("HighCut Freq",
                                                            "HighCut Freq",
-                                                           juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 1.f),
+                                                           juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f),
                                                            20000.f));
     
     layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Freq",
                                                            "Peak Freq",
-                                                           juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 1.f),
+                                                           juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f),
                                                            20.f));
     
     layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Gain",
