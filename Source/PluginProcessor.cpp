@@ -193,15 +193,24 @@ juce::AudioProcessorEditor* NormalEQAudioProcessor::createEditor()
 //==============================================================================
 void NormalEQAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
+    // MemoryOutputStream에서 가져옴
+    // Writes data to an internal memory buffer, which grows as required.
+    // The data that was written into the stream can then be accessed later as a contiguous block of memory.
+    
+    juce::MemoryOutputStream mos(destData, true);
+    apvts.state.writeToStream(mos);
 }
 
 void NormalEQAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
+    // 메모리 블록에 저장해뒀던 파라미터 값으로 복원할 수 있다
+    
+    auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
+    if( tree.isValid() )
+    {
+        apvts.replaceState(tree);
+        updateFilters();
+    }
 }
 
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
