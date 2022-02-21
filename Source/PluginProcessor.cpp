@@ -186,8 +186,8 @@ bool NormalEQAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* NormalEQAudioProcessor::createEditor()
 {
-    //return new NormalEQAudioProcessorEditor (*this);
-    return new juce::GenericAudioProcessorEditor(*this);
+    return new NormalEQAudioProcessorEditor (*this);
+    //return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================

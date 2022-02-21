@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="DqyPcB" name="normalEQ" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1">
+              addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
+              cppLanguageStandard="17">
   <MAINGROUP id="PAi2J2" name="normalEQ">
     <GROUP id="{47D53EB2-35CC-8631-8AE2-852F8676694A}" name="Source">
+      <FILE id="Ox7UP0" name="AbletonStyleBox.cpp" compile="1" resource="0"
+            file="Source/AbletonStyleBox.cpp"/>
+      <FILE id="LhEHik" name="AbletonStyleBox.h" compile="0" resource="0"
+            file="Source/AbletonStyleBox.h"/>
       <FILE id="hXTDlu" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="G6BQfL" name="PluginProcessor.h" compile="0" resource="0"
