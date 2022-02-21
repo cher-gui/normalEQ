@@ -10,6 +10,28 @@
 
 #include <JuceHeader.h>
 
+
+// 기울기를 설정하기 위한 열거형 선언
+enum Slope
+{
+    Slope_12,
+    Slope_24,
+    Slope_36,
+    Slope_48
+};
+
+
+// 체인 계수를 설정하기 위한 struct
+struct ChainSettings
+{
+    float peakFreq{0}, peakGainInDecibels{0}, peakQuality{1.f};
+    float lowCutFreq{0}, highCutFreq{0};
+    
+    Slope lowCutSlope {Slope::Slope_12}, highCutSlope {Slope::Slope_12};
+};
+
+ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
+
 //==============================================================================
 /**
 */
@@ -53,8 +75,9 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
     
+    // 정적 멤버 함수, 객체가 생성되지 않더라도 호출 가능
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-    juce::AudioProcessorValueTreeState apvts{*this, nullptr, "Parameters", createParameterLayout()};
+    juce::AudioProcessorValueTreeState apvts = {*this, nullptr, "Parameters", createParameterLayout()};
 
 private:
     using Filter = juce::dsp::IIR::Filter<float>;
@@ -62,6 +85,13 @@ private:
     using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
     
     MonoChain leftChain, rightChain;
+    
+    enum ChainPosition
+    {
+        LowCut,
+        Peak,
+        HighCut
+    };
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NormalEQAudioProcessor)
 };
