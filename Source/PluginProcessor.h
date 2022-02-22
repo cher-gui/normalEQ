@@ -29,6 +29,21 @@ struct ChainSettings
     
     Slope lowCutSlope {Slope::Slope_12}, highCutSlope {Slope::Slope_12};
 };
+using Filter = juce::dsp::IIR::Filter<float>;
+using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
+using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
+
+enum ChainPosition
+{
+    LowCut,
+    Peak,
+    HighCut
+};
+
+using Coefficients = Filter::CoefficientsPtr;
+static void updateCoefficients(Coefficients& old, const Coefficients& replacements);
+
+Coefficients makePeakFilter(const ChainSettings& chainSettings, double sampleRate);
 
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
 
@@ -80,25 +95,13 @@ public:
     juce::AudioProcessorValueTreeState apvts = {*this, nullptr, "Parameters", createParameterLayout()};
 
 private:
-    using Filter = juce::dsp::IIR::Filter<float>;
-    using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
-    using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
-    
+
     MonoChain leftChain, rightChain;
-    
-    enum ChainPosition
-    {
-        LowCut,
-        Peak,
-        HighCut
-    };
     
     void updatePeakFilter(const ChainSettings& chainSettings);
     
     // 계수에 대한 포인터
-    using Coefficients = Filter::CoefficientsPtr;
-    static void updateCoefficients(Coefficients& old, const Coefficients& replacements);
-   
+
     
     template<int Index, typename ChainType, typename CoefficientType>
     void update(ChainType& chain, const CoefficientType& Coefficients)

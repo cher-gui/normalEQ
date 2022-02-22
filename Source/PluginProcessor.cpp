@@ -233,26 +233,36 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
     return settings;
 }
 
+Coefficients makePeakFilter(const ChainSettings& chainSettings, double sampleRate)
+{
+    return juce::dsp::IIR::Coefficients<float>::makePeakFilter(sampleRate,
+                                                               chainSettings.peakFreq,
+                                                               chainSettings.peakQuality,
+                                                               juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
+}
 
 void NormalEQAudioProcessor::updatePeakFilter(const ChainSettings &chainSettings)
 {
     // 피크의 계수를 설정
-    auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(getSampleRate(),
-                                                                                chainSettings.peakFreq,
-                                                                                chainSettings.peakQuality,
-                                                                                juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
-    
+    // auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(getSampleRate(),
+    //                                                                            chainSettings.peakFreq,
+    //                                                                            chainSettings.peakQuality,
+    //                                                                           juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
+    //
     // chain get 함수는 체인이 가지는 인덱스를 필요로 한다.
     // enum을 통해 인덱스를 정의해서 전달하는데, 역참조임을 유의(오디오 콜백 힙에 할당하는 것이 좋지 않은 디자인이라고)
     // *leftChain.get<ChainPosition::Peak>().coefficients = *peakCoefficients;
     // *rightChain.get<ChainPosition::Peak>().coefficients = *peakCoefficients;
     
     // 리팩토링
+    // update filter > make filter > update coefficients > update filter
+    auto peakCoefficients = makePeakFilter(chainSettings, getSampleRate());
+    
     updateCoefficients(leftChain.get<ChainPosition::Peak>().coefficients, peakCoefficients);
     updateCoefficients(rightChain.get<ChainPosition::Peak>().coefficients, peakCoefficients);
 }
 
-void NormalEQAudioProcessor::updateCoefficients(Coefficients &old, const Coefficients &replacements)
+void /*NormalEQAudioProcessor::*/updateCoefficients(Coefficients &old, const Coefficients &replacements)
 {
     //
     *old = *replacements;
