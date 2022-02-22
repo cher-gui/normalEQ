@@ -41,11 +41,24 @@ lowCutSlopeSliderAttatchment(audioProcessor.apvts, "LowCut Slope", lowCutSlopeSl
         comp->setColour(juce::Slider::textBoxOutlineColourId, almond);
         
     }
+    
+    const auto& params = audioProcessor.getParameters();
+    for ( auto param : params )
+    {
+        param->addListener(this);
+    }
+    
+    startTimerHz(60);
+    
 }
 
 NormalEQAudioProcessorEditor::~NormalEQAudioProcessorEditor()
 {
-    
+    const auto& params = audioProcessor.getParameters();
+    for ( auto param : params )
+    {
+        param->removeListener(this);
+    }
 }
 
 //==============================================================================
@@ -105,7 +118,7 @@ void NormalEQAudioProcessorEditor::paint(juce::Graphics& g)
     
     juce::Path responseCurve;
     
-    const double outputMin = responseArea.getBottom();
+    const double outputMin = responseArea.getBottom()-2;
     const double outputMax = responseArea.getY();
     
     auto map = [outputMin, outputMax](double input)
@@ -122,11 +135,20 @@ void NormalEQAudioProcessorEditor::paint(juce::Graphics& g)
         responseCurve.lineTo(responseArea.getX() + i, map(mags[i]));
     }
     
-    g.setColour(juce::Colours::bisque);
-    g.drawRect(responseArea.toFloat());
+    g.setColour(almond);
+    g.drawLine(0, responseArea.getBottom(), responseArea.getRight(), responseArea.getBottom(), 0.2f);
     
-    g.setColour(juce::Colours::rosybrown);
-    g.strokePath(responseCurve, juce::PathStrokeType(2.f));
+    g.setColour(almond);
+    g.strokePath(responseCurve, juce::PathStrokeType(2.1f));
+    
+    
+    g.setColour(almond);
+    auto leftCenter = peakFreqBox.getX() - (abs(peakFreqBox.getX()-lowCutFreqBox.getX()) / 2) + 35;
+    g.drawLine(leftCenter, peakGainBox.getBottom(), leftCenter, peakQualityBox.getY(), 0.15f);
+    
+    g.setColour(almond);
+    auto rightCenter = highCutFreqBox.getX() - (abs(peakFreqBox.getX()-highCutFreqBox.getX()) / 2) + 35;
+    g.drawLine(rightCenter, peakGainBox.getBottom(), rightCenter, peakQualityBox.getY(), 0.15f);
 }
 
 void NormalEQAudioProcessorEditor::resized()
@@ -157,8 +179,13 @@ void NormalEQAudioProcessorEditor::timerCallback()
     if( parameterChanged.compareAndSetBool(false,true) )
     {
         // monochain 업데이트
+        auto chainSettings = getChainSettings(audioProcessor.apvts);
+        auto peakCoefficients = makePeakFilter(chainSettings, audioProcessor.getSampleRate());
+        NormalEQAudioProcessor::updateCoefficients(monoChain.get<ChainPosition::Peak>().coefficients, peakCoefficients);
+        
+        // 타이머 업데이트가 필요함
         // repaint를 통해 reponse curve 업데이트
-        // 현재 aptvs monochain이 private이므로 리팩토링 필요
+        repaint();
     }
 }
 

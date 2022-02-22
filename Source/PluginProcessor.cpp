@@ -262,7 +262,7 @@ void NormalEQAudioProcessor::updatePeakFilter(const ChainSettings &chainSettings
     updateCoefficients(rightChain.get<ChainPosition::Peak>().coefficients, peakCoefficients);
 }
 
-void /*NormalEQAudioProcessor::*/updateCoefficients(Coefficients &old, const Coefficients &replacements)
+void NormalEQAudioProcessor::updateCoefficients(Coefficients &old, const Coefficients &replacements)
 {
     //
     *old = *replacements;

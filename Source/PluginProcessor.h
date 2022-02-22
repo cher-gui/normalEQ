@@ -41,7 +41,7 @@ enum ChainPosition
 };
 
 using Coefficients = Filter::CoefficientsPtr;
-static void updateCoefficients(Coefficients& old, const Coefficients& replacements);
+
 
 Coefficients makePeakFilter(const ChainSettings& chainSettings, double sampleRate);
 
@@ -93,6 +93,8 @@ public:
     // 정적 멤버 함수, 객체가 생성되지 않더라도 호출 가능
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     juce::AudioProcessorValueTreeState apvts = {*this, nullptr, "Parameters", createParameterLayout()};
+    
+    static void updateCoefficients(Coefficients& old, const Coefficients& replacements);
 
 private:
 
