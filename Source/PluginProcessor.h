@@ -10,7 +10,6 @@
 
 #include <JuceHeader.h>
 
-
 // 기울기를 설정하기 위한 열거형 선언
 enum Slope
 {

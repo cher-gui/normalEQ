@@ -13,13 +13,14 @@
 #include <JuceHeader.h>
 
 
+
 class CustomLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
-    
+    CustomLookAndFeel();
+    ~CustomLookAndFeel();
     juce::CaretComponent* createCaretComponent(juce::Component* KeyFocusOwner) override;
     juce::Label* createSliderTextBox(juce::Slider& slider) override;
-
 };
 
 class AbletonStyleBox : public juce::Slider

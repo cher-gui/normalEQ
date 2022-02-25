@@ -9,6 +9,12 @@
 */
 
 #include "AbletonStyleBox.h"
+CustomLookAndFeel::CustomLookAndFeel()
+{
+    auto font = juce::Typeface::createSystemTypefaceFor(BinaryData::ScopeOneRegular_ttf, BinaryData::ScopeOneRegular_ttfSize);
+    setDefaultSansSerifTypeface(font);
+}
+CustomLookAndFeel::~CustomLookAndFeel(){};
 
 juce::CaretComponent* CustomLookAndFeel::createCaretComponent(juce::Component *keyFocusOwner)
 {
@@ -27,7 +33,9 @@ juce::Label* CustomLookAndFeel::createSliderTextBox (juce::Slider& slider)
     l->setColour(juce::Label::textColourId, slider.findColour(juce::Slider::textBoxTextColourId));
     l->setColour(juce::Label::textWhenEditingColourId, slider.findColour(juce::Slider::textBoxTextColourId));
     l->setColour(juce::Label::outlineWhenEditingColourId, juce::Colours::transparentWhite);
-    l->setFont (15);
+    
+    l->setFont(20);
+    
 
     return l;
 }
@@ -44,18 +52,17 @@ AbletonStyleBox::AbletonStyleBox(juce::RangedAudioParameter& rap, const juce::St
     setLookAndFeel(&customLookAndFeel);
     setSliderStyle(juce::Slider::LinearBar);
 
-    
-    setColour(juce::Slider::trackColourId, juce::Colours::transparentWhite);
+    setColour(juce::Slider::trackColourId, juce::Colours::red);
 
     setTextBoxIsEditable(false);
     setVelocityBasedMode(true);
-    setVelocityModeParameters(0.5, 1, 0.09, false);
-    setRange(0, 100, 0.01);
-    setValue(50.0);
+    //setVelocityModeParameters(0.5, 1, 0.09, false);
+    //setRange(0, 100, 0.01);
+    //setValue(50.0);
 
-    setDoubleClickReturnValue(true, 50.0);
+    //setDoubleClickReturnValue(true, 50.0);
     setWantsKeyboardFocus(true);
-
+    
     /** You can assign a lambda to this callback object to have it called when the slider value is changed. */
     onValueChange = [&]()
     {
@@ -66,6 +73,7 @@ AbletonStyleBox::AbletonStyleBox(juce::RangedAudioParameter& rap, const juce::St
         else
             setNumDecimalPlacesToDisplay(0);
     };
+    
 }
 
 AbletonStyleBox::~AbletonStyleBox()

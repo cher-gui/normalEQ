@@ -334,7 +334,6 @@ juce::AudioProcessorValueTreeState::ParameterLayout NormalEQAudioProcessor::crea
     {
         juce::String str;
         str << (12 + i * 12);
-        str << " db/Oct";
         stringArray.add(str);
     }
     

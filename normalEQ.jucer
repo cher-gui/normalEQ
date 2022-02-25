@@ -4,6 +4,14 @@
               addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
               cppLanguageStandard="17">
   <MAINGROUP id="PAi2J2" name="normalEQ">
+    <GROUP id="{6DBBB1FE-89AA-AA2C-6D5E-DEC7AD38B14B}" name="Binary">
+      <FILE id="eY1uFP" name="ScopeOneRegular.ttf" compile="0" resource="1"
+            file="Source/Binary/ScopeOneRegular.ttf"/>
+      <FILE id="AH3XFn" name="cat.png" compile="0" resource="1" file="Source/Binary/cat.png"/>
+      <FILE id="lDXvLb" name="bell.png" compile="0" resource="1" file="Source/Binary/bell.png"/>
+      <FILE id="P51pc3" name="highpass.png" compile="0" resource="1" file="Source/Binary/highpass.png"/>
+      <FILE id="zRFIvv" name="lowpass.png" compile="0" resource="1" file="Source/Binary/lowpass.png"/>
+    </GROUP>
     <GROUP id="{47D53EB2-35CC-8631-8AE2-852F8676694A}" name="Source">
       <FILE id="Ox7UP0" name="AbletonStyleBox.cpp" compile="1" resource="0"
             file="Source/AbletonStyleBox.cpp"/>
