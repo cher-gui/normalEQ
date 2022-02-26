@@ -13,12 +13,13 @@
 #include <JuceHeader.h>
 
 
-
 class CustomLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
     CustomLookAndFeel();
     ~CustomLookAndFeel();
+    
+    
     juce::CaretComponent* createCaretComponent(juce::Component* KeyFocusOwner) override;
     juce::Label* createSliderTextBox(juce::Slider& slider) override;
 };
@@ -38,7 +39,6 @@ public:
 private:
     CustomLookAndFeel customLookAndFeel;
     
-    juce::Slider::LookAndFeelMethods* lnf;
     juce::RangedAudioParameter* param;
     juce::String suffix;
 };

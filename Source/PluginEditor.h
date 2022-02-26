@@ -15,6 +15,7 @@
 struct CustomColour
 {
     const juce::Colour background   = juce::Colour::fromRGB(12, 22, 49);
+    const juce::Colour almondAlpha  = juce::Colour::fromRGBA(236, 216, 200, 100);
     const juce::Colour almond       = juce::Colour::fromRGB(236, 216, 200);
     const juce::Colour zest         = juce::Colour::fromRGB(218, 121, 25);
     const juce::Colour mahogany     = juce::Colour::fromRGB(97, 8, 7);
@@ -27,17 +28,24 @@ struct DrawResponseCurve : juce::Component,
     DrawResponseCurve(NormalEQAudioProcessor& p);
     ~DrawResponseCurve();
 
-    void paint(juce::Graphics& g) override;
-
     void parameterValueChanged(int parameterIndex, float newValue) override;
     void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override { }
     void timerCallback() override;
+    
+    void paint(juce::Graphics& g) override;
+    void resized() override;
+    void updateChain();
 
 private:
     NormalEQAudioProcessor& audioProcessor;
     CustomColour customColour;
     juce::Atomic<bool> parameterChanged{ false };
     MonoChain  monoChain;
+    
+    juce::Image background;
+    
+    juce::Rectangle<int> getRenderArea();
+    juce::Rectangle<int> getAnalysisArea();
 };
 
 
@@ -47,12 +55,12 @@ struct CustomDialLookAndFeel : public juce::LookAndFeel_V4
     ~CustomDialLookAndFeel();
     
     juce::Slider::SliderLayout getSliderLayout(juce::Slider& slider) override;
-    
     void drawRotarySlider (juce::Graphics&, int x, int y,
                            int width, int height, float sliderPosProportional,
                            float rotaryStartAngle, float rotaryEndAngle, juce::Slider&) override;
     
     juce::Label* createSliderTextBox (juce::Slider& slider) override;
+    
 private:
     CustomColour customColour;
 };
@@ -96,28 +104,12 @@ public:
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
-  
-
-    /** Indicates that a parameter change gesture has started.
-
-        E.g. if the user is dragging a slider, this would be called with gestureIsStarting
-        being true when they first press the mouse button, and it will be called again with
-        gestureIsStarting being false when they release it.
-
-        IMPORTANT NOTE: This will be called synchronously, and many audio processors will
-        call it during their audio callback. This means that not only has your handler code
-        got to be completely thread-safe, but it's also got to be VERY fast, and avoid
-        blocking. If you need to handle this event on your message thread, use this callback
-        to trigger an AsyncUpdater or ChangeBroadcaster which you can respond to later on the
-        message thread.
-    */
         
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     NormalEQAudioProcessor& audioProcessor;
     CustomColour customColour;
-    DrawResponseCurve drawResponseCurveComponent;
     DrawImage drawImage;
     CustomLookAndFeel customLookAndFeel;
     
@@ -130,7 +122,8 @@ private:
     CustomRotarySlider highCutSlopeSlider,
                        lowCutSlopeSlider;
     
-    using Img = juce::ImageCache;
+    DrawResponseCurve drawResponseCurveComponent;
+    
     using APVTS = juce::AudioProcessorValueTreeState;
     using Attatchment = APVTS::SliderAttachment;
     

@@ -41,10 +41,62 @@ enum ChainPosition
 
 using Coefficients = Filter::CoefficientsPtr;
 
+void updateCoefficients(Coefficients& old, const Coefficients& replacements);
 
 Coefficients makePeakFilter(const ChainSettings& chainSettings, double sampleRate);
 
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
+
+template<int Index, typename ChainType, typename CoefficientType>
+void update(ChainType& chain, const CoefficientType& Coefficients)
+{
+    updateCoefficients(chain.template get<Index>().coefficients, Coefficients[Index]);
+    chain.template setBypassed<Index>(false);
+}
+
+template<typename ChainType, typename CoefficientType>
+void updateCutFilter(ChainType& chain,
+                     const CoefficientType& cutCoefficients,
+                     const Slope& lowCutSlope)
+{
+    
+    chain.template setBypassed<0>(true);
+    chain.template setBypassed<1>(true);
+    chain.template setBypassed<2>(true);
+    chain.template setBypassed<3>(true);
+    
+    switch( lowCutSlope )
+    {
+        case Slope_48:
+        {
+            update<3>(chain, cutCoefficients);
+        }
+        case Slope_36:
+        {
+            update<2>(chain, cutCoefficients);
+        }
+        case Slope_24:
+        {
+            update<1>(chain, cutCoefficients);
+        }
+        case Slope_12:
+        {
+            update<0>(chain, cutCoefficients);
+        }
+    }
+};
+
+
+
+inline auto makeLowCutFilter(const ChainSettings& chainSettings, double sampleRate)
+{
+    return juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq, sampleRate,2 * (chainSettings.lowCutSlope) + 1);
+}
+
+inline auto makeHighCutFilter(const ChainSettings& chainSettings, double sampleRate)
+{
+    return juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(chainSettings.highCutFreq, sampleRate, 2 * (chainSettings.highCutSlope + 1));
+}
 
 //==============================================================================
 /**
@@ -93,7 +145,7 @@ public:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     juce::AudioProcessorValueTreeState apvts = {*this, nullptr, "Parameters", createParameterLayout()};
     
-    static void updateCoefficients(Coefficients& old, const Coefficients& replacements);
+    
 
 private:
 
@@ -104,44 +156,6 @@ private:
     // 계수에 대한 포인터
 
     
-    template<int Index, typename ChainType, typename CoefficientType>
-    void update(ChainType& chain, const CoefficientType& Coefficients)
-    {
-        updateCoefficients(chain.template get<Index>().coefficients, Coefficients[Index]);
-        chain.template setBypassed<Index>(false);
-    }
-    
-    template<typename ChainType, typename CoefficientType>
-    void updateCutFilter(ChainType& chain,
-                         const CoefficientType& cutCoefficients,
-                         const Slope& lowCutSlope)
-    {
-        
-        chain.template setBypassed<0>(true);
-        chain.template setBypassed<1>(true);
-        chain.template setBypassed<2>(true);
-        chain.template setBypassed<3>(true);
-        
-        switch( lowCutSlope )
-        {
-            case Slope_48:
-            {
-                update<3>(chain, cutCoefficients);
-            }
-            case Slope_36:
-            {
-                update<2>(chain, cutCoefficients);
-            }
-            case Slope_24:
-            {
-                update<1>(chain, cutCoefficients);
-            }
-            case Slope_12:
-            {
-                update<0>(chain, cutCoefficients);
-            }
-        }
-    };
     
     
     void updateLowCutFilters(const ChainSettings& chainSettings);

@@ -17,9 +17,8 @@ DrawResponseCurve::DrawResponseCurve(NormalEQAudioProcessor& p) : audioProcessor
     {
         param->addListener(this);
     }
-
+    updateChain();
     startTimerHz(60);
-
 }
 
 DrawResponseCurve::~DrawResponseCurve()
@@ -33,8 +32,13 @@ DrawResponseCurve::~DrawResponseCurve()
 
 void DrawResponseCurve::paint(juce::Graphics& g)
 {
-    auto responseArea = getLocalBounds();
+    auto responseArea = getAnalysisArea();
     auto responseWidth = responseArea.getWidth();
+    
+    g.setColour(customColour.almond);
+    g.drawRect(responseArea);
+    
+    g.drawImage(background, responseArea.toFloat());
 
     auto& lowCut = monoChain.get<ChainPosition::LowCut>();
     auto& peak = monoChain.get<ChainPosition::Peak>();
@@ -81,7 +85,7 @@ void DrawResponseCurve::paint(juce::Graphics& g)
 
     juce::Path responseCurve;
 
-    const double outputMin = responseArea.getBottom() - 2;
+    const double outputMin = responseArea.getBottom();
     const double outputMax = responseArea.getY();
 
     auto map = [outputMin, outputMax](double input)
@@ -99,9 +103,6 @@ void DrawResponseCurve::paint(juce::Graphics& g)
     }
 
     g.setColour(customColour.almond);
-    g.drawLine(0, responseArea.getBottom(), responseArea.getRight(), responseArea.getBottom(), 0.2f);
-
-    g.setColour(customColour.almond);
     g.strokePath(responseCurve, juce::PathStrokeType(2.1f));
 }
 
@@ -117,15 +118,125 @@ void DrawResponseCurve::timerCallback()
     if (parameterChanged.compareAndSetBool(false, true))
     {
         // monochain 업데이트
-        auto chainSettings = getChainSettings(audioProcessor.apvts);
-        auto peakCoefficients = makePeakFilter(chainSettings, audioProcessor.getSampleRate());
-        NormalEQAudioProcessor::updateCoefficients(monoChain.get<ChainPosition::Peak>().coefficients, peakCoefficients);
-
+        updateChain();
         // 타이머 업데이트가 필요함
         // repaint를 통해 reponse curve 업데이트
         repaint();
     }
 }
+
+void DrawResponseCurve::updateChain()
+{
+    auto chainSettings = getChainSettings(audioProcessor.apvts);
+    auto peakCoefficients = makePeakFilter(chainSettings, audioProcessor.getSampleRate());
+    updateCoefficients(monoChain.get<ChainPosition::Peak>().coefficients, peakCoefficients);
+    
+    
+    auto lowCutCoefficients = makeLowCutFilter(chainSettings, audioProcessor.getSampleRate());
+    auto highCutCoefficients = makeHighCutFilter(chainSettings, audioProcessor.getSampleRate());
+    updateCutFilter(monoChain.get<ChainPosition::LowCut>(), lowCutCoefficients, chainSettings.lowCutSlope);
+    updateCutFilter(monoChain.get<ChainPosition::HighCut>(), highCutCoefficients, chainSettings.highCutSlope);
+}
+
+void DrawResponseCurve::resized()
+{
+    background = juce::Image(juce::Image::PixelFormat::RGB, getWidth(),getHeight(),true);
+    
+    juce::Graphics g(background);
+    
+    
+    juce::Array<float> freqs
+    {
+        20, 30, 40, 50, 100,
+        200, 300, 400, 500, 1000,
+        2000, 3000, 4000, 5000, 10000,
+        20000
+    };
+    
+    auto renderArea = getLocalBounds();
+    auto left = renderArea.getX();
+    auto width = renderArea.getWidth();
+    
+    g.setColour(customColour.almondAlpha);
+    
+    juce::Array<float> xs;
+    for(auto f : freqs)
+    {
+        auto normalX = juce::mapFromLog10(f, 20.f, 20000.f);
+        xs.add(left + width * normalX);
+        
+        g.drawVerticalLine(getWidth() * normalX, 0.f, getHeight());
+    }
+    
+    juce::Array<float> gain
+    {
+        -24, -12, 0, 12, 24
+    };
+    
+    for( auto gDb : gain )
+    {
+        auto y = juce::jmap(gDb, -24.f, 24.f, float(getHeight()), 0.f);
+        
+        g.drawHorizontalLine(y, 0, getWidth());
+    }
+    
+    g.setColour(customColour.almond);
+    const int fontHeight = 12;
+    g.setFont(fontHeight);
+    
+
+    for( int i = 1; i < freqs.size(); ++i)
+    {
+
+        auto f = freqs[i];
+        int notDisplay = static_cast<int>(freqs[i]);
+        if(notDisplay == 300|| notDisplay == 500|| notDisplay == 3000|| notDisplay == 5000 || notDisplay == 20000)
+        {
+            continue;
+        }
+        
+        auto x = xs[i];
+        
+        juce::String str;
+        
+        str << f;
+
+        
+        auto textWidth = g.getCurrentFont().getStringWidth(str);
+        
+        juce::Rectangle<int> r;
+        
+        r.setSize(textWidth, fontHeight);
+        r.setCentre(x,0);
+        r.setY(201);
+        
+        g.drawFittedText(str, r, juce::Justification::centred, 1);
+    }
+}
+
+juce::Rectangle<int> DrawResponseCurve::getRenderArea()
+{
+    auto bounds = getLocalBounds();
+    
+    bounds.removeFromTop(15);
+    bounds.removeFromLeft(15);
+    bounds.removeFromRight(15);
+    //bounds.removeFromBottom();
+    
+    return bounds;
+}
+
+juce::Rectangle<int> DrawResponseCurve::getAnalysisArea()
+{
+    auto bounds = getRenderArea();
+    
+    //bounds.removeFromTop(5);
+    //bounds.removeFromBottom(0);
+    
+    return bounds;
+}
+
+
 //==============================================================================
 
 CustomDialLookAndFeel::CustomDialLookAndFeel() {}
@@ -136,7 +247,7 @@ juce::Slider::SliderLayout CustomDialLookAndFeel::getSliderLayout(juce::Slider &
     auto bounds = slider.getLocalBounds();
     
     juce::Slider::SliderLayout layout;
-    layout.textBoxBounds = bounds.withY(0);
+    layout.textBoxBounds = bounds.withY(1);
     layout.sliderBounds = bounds;
     
     return layout;
@@ -197,7 +308,7 @@ juce::Label* CustomDialLookAndFeel::createSliderTextBox(juce::Slider &slider)
     l->setColour (juce::Label::textWhenEditingColourId, slider.findColour (juce::Slider::textBoxTextColourId));
     l->setColour (juce::Label::outlineWhenEditingColourId, juce::Colours::transparentWhite);
     l->setInterceptsMouseClicks (false, false);
-    l->setFont (18.0f);
+    l->setFont (15.0f);
 
     return l;
 }
@@ -205,15 +316,8 @@ juce::Label* CustomDialLookAndFeel::createSliderTextBox(juce::Slider &slider)
 CustomRotarySlider::CustomRotarySlider() 
 {
     setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
-    //setTextBoxStyle(juce::Slider::NoTextBox, false, 50, 50);
     setRotaryParameters(juce::MathConstants<float>::pi * 1.75f, juce::MathConstants<float>::pi * 2.25f, true);
     
-
-    
-    //setColour(juce::Slider::textBoxTextColourId, customColour.almond);
-    //setColour(juce::Slider::textBoxOutlineColourId, customColour.background);
-    //setColour(juce::Slider::rotarySliderFillColourId, customColour.almond);
-
     setLookAndFeel(&customDialLookAndFeel);
     
     setVelocityBasedMode(true);
@@ -234,14 +338,14 @@ CustomRotarySlider::~CustomRotarySlider()
 NormalEQAudioProcessorEditor::NormalEQAudioProcessorEditor(NormalEQAudioProcessor& p)
     : AudioProcessorEditor(&p), audioProcessor(p),
 
-    drawResponseCurveComponent(audioProcessor),
+    
     highCutFreqBox(*audioProcessor.apvts.getParameter("HighCut Freq"), "Hz"),
     peakFreqBox(*audioProcessor.apvts.getParameter("Peak Freq"), "Hz"),
     peakGainBox(*audioProcessor.apvts.getParameter("Peak Gain"), "db"),
     peakQualityBox(*audioProcessor.apvts.getParameter("Peak Quality"), ""),
     lowCutFreqBox(*audioProcessor.apvts.getParameter("LowCut Freq"), "Hz"),
 
-    
+    drawResponseCurveComponent(audioProcessor),
     highCutFreqBoxAttatchment(audioProcessor.apvts, "HighCut Freq", highCutFreqBox),
     peakFreqBoxAttatchment(audioProcessor.apvts, "Peak Freq", peakFreqBox),
     peakGainBoxAttatchment(audioProcessor.apvts, "Peak Gain", peakGainBox),
@@ -290,10 +394,10 @@ void NormalEQAudioProcessorEditor::paint(juce::Graphics& g)
     
     float getWidth = juce::Component::getWidth();
     float getHeight = juce::Component::getHeight();
-    g.drawImage(drawImage.catImage, 0, 0, 50, 50, 0, 0, drawImage.catImage.getWidth(), drawImage.catImage.getHeight());
-    g.drawImage(drawImage.lowCutImage, getWidth * 0.2 - 12, getHeight * 0.37, 24, 20, 0, 0, drawImage.lowCutImage.getWidth(),drawImage.lowCutImage.getHeight());
-    g.drawImage(drawImage.peakImage, getWidth * 0.5 - 12, getHeight * 0.37, 24, 20, 0, 0, drawImage.peakImage.getWidth(),drawImage.peakImage.getHeight());
-    g.drawImage(drawImage.highCutImage, getWidth * 0.8 - 12, getHeight * 0.37, 24, 20, 0, 0, drawImage.highCutImage.getWidth(),drawImage.highCutImage.getHeight());
+    //g.drawImage(drawImage.catImage, 0, 0, 50, 50, 0, 0, drawImage.catImage.getWidth(), drawImage.catImage.getHeight());
+    g.drawImage(drawImage.lowCutImage, getWidth * 0.2 - 12, getHeight * 0.38, 24, 20, 0, 0, drawImage.lowCutImage.getWidth(),drawImage.lowCutImage.getHeight());
+    g.drawImage(drawImage.peakImage, getWidth * 0.5 - 12, getHeight * 0.38, 24, 20, 0, 0, drawImage.peakImage.getWidth(),drawImage.peakImage.getHeight());
+    g.drawImage(drawImage.highCutImage, getWidth * 0.8 - 12, getHeight * 0.38, 24, 20, 0, 0, drawImage.highCutImage.getWidth(),drawImage.highCutImage.getHeight());
 } 
 
 void NormalEQAudioProcessorEditor::resized()

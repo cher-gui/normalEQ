@@ -262,7 +262,7 @@ void NormalEQAudioProcessor::updatePeakFilter(const ChainSettings &chainSettings
     updateCoefficients(rightChain.get<ChainPosition::Peak>().coefficients, peakCoefficients);
 }
 
-void NormalEQAudioProcessor::updateCoefficients(Coefficients &old, const Coefficients &replacements)
+void updateCoefficients(Coefficients &old, const Coefficients &replacements)
 {
     //
     *old = *replacements;
@@ -270,20 +270,17 @@ void NormalEQAudioProcessor::updateCoefficients(Coefficients &old, const Coeffic
 
 void NormalEQAudioProcessor::updateLowCutFilters(const ChainSettings &chainSettings)
 {
-   auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq,
-                                                                                                      getSampleRate(),
-                                                                                                      2 * (chainSettings.lowCutSlope) + 1);
-   auto& leftLowCut = leftChain.get<ChainPosition::LowCut>();
-   auto& rightLowCut = rightChain.get<ChainPosition::LowCut>();
-   updateCutFilter(leftLowCut, cutCoefficients, chainSettings.lowCutSlope);
-   updateCutFilter(rightLowCut, cutCoefficients, chainSettings.lowCutSlope);
+    auto cutCoefficients = makeLowCutFilter(chainSettings, getSampleRate());
+    auto& leftLowCut = leftChain.get<ChainPosition::LowCut>();
+    auto& rightLowCut = rightChain.get<ChainPosition::LowCut>();
+    updateCutFilter(leftLowCut, cutCoefficients, chainSettings.lowCutSlope);
+    updateCutFilter(rightLowCut, cutCoefficients, chainSettings.lowCutSlope);
 }
 
 void NormalEQAudioProcessor::updateHighCutFilters(const ChainSettings &chainSettings)
 {
-    auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(chainSettings.highCutFreq,
-                                                                                                           getSampleRate(),
-                                                                                                           2 * (chainSettings.highCutSlope + 1));
+    auto cutCoefficients = makeHighCutFilter(chainSettings, getSampleRate());
+    
     auto& leftHighCut = leftChain.get<ChainPosition::HighCut>();
     auto& rightHighCut = rightChain.get<ChainPosition::HighCut>();
     updateCutFilter(leftHighCut, cutCoefficients, chainSettings.highCutSlope);
@@ -306,27 +303,27 @@ juce::AudioProcessorValueTreeState::ParameterLayout NormalEQAudioProcessor::crea
     
     layout.add(std::make_unique<juce::AudioParameterFloat>("LowCut Freq",
                                                            "LowCut Freq",
-                                                           juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f),
+                                                           juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.9f),
                                                            20.f));
     
     layout.add(std::make_unique<juce::AudioParameterFloat>("HighCut Freq",
                                                            "HighCut Freq",
-                                                           juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f),
+                                                           juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 1.1f),
                                                            20000.f));
     
     layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Freq",
                                                            "Peak Freq",
-                                                           juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f),
-                                                           20.f));
+                                                           juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 1),
+                                                           1000.f));
     
     layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Gain",
                                                            "Peak Gain",
-                                                           juce::NormalisableRange<float>(-24.f, 24.f, 0.5f, 1.f),
+                                                           juce::NormalisableRange<float>(-24.f, 24.f, 0.1f, 1.f),
                                                            0.0f));
     
     layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Quality",
                                                            "Peak Quality",
-                                                           juce::NormalisableRange<float>(0.1f, 10.f, 0.05f, 1.f),
+                                                           juce::NormalisableRange<float>(0.1f, 10.f, 0.01f, 1.f),
                                                            1.f));
     
     juce::StringArray stringArray;
