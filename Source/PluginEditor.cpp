@@ -35,10 +35,10 @@ void DrawResponseCurve::paint(juce::Graphics& g)
     auto responseArea = getAnalysisArea();
     auto responseWidth = responseArea.getWidth();
     
+ 
+    g.drawImage(background, responseArea.toFloat());
     g.setColour(customColour.almond);
     g.drawRect(responseArea);
-    
-    g.drawImage(background, responseArea.toFloat());
 
     auto& lowCut = monoChain.get<ChainPosition::LowCut>();
     auto& peak = monoChain.get<ChainPosition::Peak>();
@@ -142,6 +142,8 @@ void DrawResponseCurve::resized()
 {
     background = juce::Image(juce::Image::PixelFormat::RGB, getWidth(),getHeight(),true);
     
+ 
+
     juce::Graphics g(background);
     
     
@@ -153,13 +155,17 @@ void DrawResponseCurve::resized()
         20000
     };
     
+    g.fillAll(customColour.background);
+
     auto renderArea = getLocalBounds();
     auto left = renderArea.getX();
     auto width = renderArea.getWidth();
+
     
     g.setColour(customColour.almondAlpha);
     
     juce::Array<float> xs;
+    juce::Array<float> ys;
     for(auto f : freqs)
     {
         auto normalX = juce::mapFromLog10(f, 20.f, 20000.f);
@@ -173,17 +179,37 @@ void DrawResponseCurve::resized()
         -24, -12, 0, 12, 24
     };
     
-    for( auto gDb : gain )
-    {
-        auto y = juce::jmap(gDb, -24.f, 24.f, float(getHeight()), 0.f);
-        
-        g.drawHorizontalLine(y, 0, getWidth());
-    }
     
     g.setColour(customColour.almond);
     const int fontHeight = 12;
     g.setFont(fontHeight);
     
+    
+    for( auto gDb : gain )
+    {
+        auto y = juce::jmap(gDb, -24.f, 24.f, float(getHeight()), 0.f);
+        
+        g.setColour(customColour.almondAlpha);
+        g.drawHorizontalLine(y, 0, getWidth());
+        
+        juce::String str;
+        if( gDb < -12 || gDb > 12) continue;
+        if( gDb > 0 )str << "+";
+        str << gDb;
+   
+        auto textWidth = g.getCurrentFont().getStringWidth(str);
+  
+        juce::Rectangle<int> r;
+        r.setSize(textWidth, fontHeight);
+        r.setX(getWidth() - textWidth);
+        r.setCentre(r.getCentreX(), y);
+
+        g.setColour(customColour.almond);
+
+        g.drawFittedText(str, r, juce::Justification::centredLeft, 1);
+    }
+    
+
 
     for( int i = 1; i < freqs.size(); ++i)
     {
@@ -208,8 +234,9 @@ void DrawResponseCurve::resized()
         
         r.setSize(textWidth, fontHeight);
         r.setCentre(x,0);
-        r.setY(201);
+        r.setY(204.5f);
         
+        g.setColour(customColour.almond);
         g.drawFittedText(str, r, juce::Justification::centred, 1);
     }
 }
@@ -221,7 +248,7 @@ juce::Rectangle<int> DrawResponseCurve::getRenderArea()
     bounds.removeFromTop(15);
     bounds.removeFromLeft(15);
     bounds.removeFromRight(15);
-    //bounds.removeFromBottom();
+    
     
     return bounds;
 }
@@ -229,9 +256,6 @@ juce::Rectangle<int> DrawResponseCurve::getRenderArea()
 juce::Rectangle<int> DrawResponseCurve::getAnalysisArea()
 {
     auto bounds = getRenderArea();
-    
-    //bounds.removeFromTop(5);
-    //bounds.removeFromBottom(0);
     
     return bounds;
 }
@@ -354,7 +378,6 @@ NormalEQAudioProcessorEditor::NormalEQAudioProcessorEditor(NormalEQAudioProcesso
 
     highCutSlopeSliderAttatchment(audioProcessor.apvts, "HighCut Slope", highCutSlopeSlider),
     lowCutSlopeSliderAttatchment(audioProcessor.apvts, "LowCut Slope", lowCutSlopeSlider)
-    
 {
     setSize(650, 650);
     setWantsKeyboardFocus(true);
@@ -367,8 +390,8 @@ NormalEQAudioProcessorEditor::NormalEQAudioProcessorEditor(NormalEQAudioProcesso
     }
     
     juce::LookAndFeel::setDefaultLookAndFeel(&customLookAndFeel);
-    
 
+    
 }
 
 NormalEQAudioProcessorEditor::~NormalEQAudioProcessorEditor()
@@ -394,23 +417,37 @@ void NormalEQAudioProcessorEditor::paint(juce::Graphics& g)
     
     float getWidth = juce::Component::getWidth();
     float getHeight = juce::Component::getHeight();
+
     //g.drawImage(drawImage.catImage, 0, 0, 50, 50, 0, 0, drawImage.catImage.getWidth(), drawImage.catImage.getHeight());
-    g.drawImage(drawImage.lowCutImage, getWidth * 0.2 - 12, getHeight * 0.38, 24, 20, 0, 0, drawImage.lowCutImage.getWidth(),drawImage.lowCutImage.getHeight());
-    g.drawImage(drawImage.peakImage, getWidth * 0.5 - 12, getHeight * 0.38, 24, 20, 0, 0, drawImage.peakImage.getWidth(),drawImage.peakImage.getHeight());
-    g.drawImage(drawImage.highCutImage, getWidth * 0.8 - 12, getHeight * 0.38, 24, 20, 0, 0, drawImage.highCutImage.getWidth(),drawImage.highCutImage.getHeight());
+    //g.drawImage(drawImage.lowCutImage, getWidth * 0.2 - 12, getHeight * 0.38, 24, 20, 0, 0, drawImage.lowCutImage.getWidth(),drawImage.lowCutImage.getHeight());
+    //g.drawImage(drawImage.peakImage, getWidth * 0.5 - 12, getHeight * 0.38, 24, 20, 0, 0, drawImage.peakImage.getWidth(),drawImage.peakImage.getHeight());
+    //g.drawImage(drawImage.highCutImage, getWidth * 0.8 - 12, getHeight * 0.38, 24, 20, 0, 0, drawImage.highCutImage.getWidth(),drawImage.highCutImage.getHeight());
+
+    g.setColour(customColour.almond);
+
+    drawImage.lowCut->setTransformToFit(juce::Rectangle<float>(getWidth * 0.2 - 12, getHeight * 0.38, 20, 20), juce::RectanglePlacement::centred);
+    drawImage.lowCut ->draw(g, 1.f);
+
+    drawImage.peak->setTransformToFit(juce::Rectangle<float>(getWidth * 0.5 - 12, getHeight * 0.38, 20, 20), juce::RectanglePlacement::centred);
+    drawImage.peak->draw(g, 1.f);
+
+    drawImage.highCut->setTransformToFit(juce::Rectangle<float>(getWidth * 0.8 - 12, getHeight * 0.38, 20, 20), juce::RectanglePlacement::centred);
+    drawImage.highCut->draw(g, 1.f);
+
+    
 } 
 
 void NormalEQAudioProcessorEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
-    
+
     float getHeight = juce::Component::getHeight() / 3 * 2 + 10;
     float getWidth = juce::Component::getWidth() / 3 - 70;
-   
+
     auto bounds = getLocalBounds();
     auto responseArea = bounds.removeFromTop(bounds.getHeight() * 0.333);
-    
+
     highCutFreqBox.setBounds(getWidth * 3, getHeight, 70, 25);
     peakFreqBox.setBounds(getWidth * 2, getHeight, 70, 25);
     peakGainBox.setBounds(getWidth * 2, getHeight * 1.3, 70, 25);
@@ -419,6 +456,9 @@ void NormalEQAudioProcessorEditor::resized()
     lowCutSlopeSlider.setBounds(getWidth * 0.5, getHeight * 0.98, 50, 50);
     highCutSlopeSlider.setBounds(getWidth * 3.5 + 25, getHeight * 0.98, 50, 50);
     drawResponseCurveComponent.setBounds(responseArea);
+   
+
+    
 }
 
 

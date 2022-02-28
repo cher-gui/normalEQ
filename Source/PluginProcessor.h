@@ -155,9 +155,6 @@ private:
     
     // 계수에 대한 포인터
 
-    
-    
-    
     void updateLowCutFilters(const ChainSettings& chainSettings);
     void updateHighCutFilters(const ChainSettings& chainSettings);
     void updateFilters();

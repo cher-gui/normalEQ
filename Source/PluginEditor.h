@@ -12,10 +12,11 @@
 #include "PluginProcessor.h"
 #include "AbletonStyleBox.h"
 
+
 struct CustomColour
 {
     const juce::Colour background   = juce::Colour::fromRGB(12, 22, 49);
-    const juce::Colour almondAlpha  = juce::Colour::fromRGBA(236, 216, 200, 100);
+    const juce::Colour almondAlpha  = juce::Colour::fromRGBA(236, 216, 200, 60);
     const juce::Colour almond       = juce::Colour::fromRGB(236, 216, 200);
     const juce::Colour zest         = juce::Colour::fromRGB(218, 121, 25);
     const juce::Colour mahogany     = juce::Colour::fromRGB(97, 8, 7);
@@ -79,10 +80,10 @@ private:
 
 struct DrawImage : public juce::Component
 {
-    juce::Image lowCutImage = juce::ImageCache::getFromMemory(BinaryData::highpass_png, BinaryData::highpass_pngSize);
-    juce::Image peakImage = juce::ImageCache::getFromMemory(BinaryData::bell_png, BinaryData::bell_pngSize);
-    juce::Image highCutImage = juce::ImageCache::getFromMemory(BinaryData::lowpass_png, BinaryData::lowpass_pngSize);
-    juce::Image catImage = juce::ImageCache::getFromMemory(BinaryData::cat_png, BinaryData::cat_pngSize);
+    
+    const std::unique_ptr<juce::Drawable> lowCut = juce::Drawable::createFromImageData(BinaryData::highpass_svg, BinaryData::highpass_svgSize);
+    const std::unique_ptr<juce::Drawable> peak = juce::Drawable::createFromImageData(BinaryData::bell_svg, BinaryData::bell_svgSize);
+    const std::unique_ptr<juce::Drawable> highCut = juce::Drawable::createFromImageData(BinaryData::lowpass_svg, BinaryData::lowpass_svgSize);
     
 };
 
@@ -136,7 +137,6 @@ private:
                 lowCutSlopeSliderAttatchment;
     
     std::vector<juce::Component*> getComps();
-    
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NormalEQAudioProcessorEditor)
 };

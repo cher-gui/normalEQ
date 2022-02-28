@@ -19,14 +19,19 @@ public:
     CustomLookAndFeel();
     ~CustomLookAndFeel();
     
-    
+
     juce::CaretComponent* createCaretComponent(juce::Component* KeyFocusOwner) override;
     juce::Label* createSliderTextBox(juce::Slider& slider) override;
+private:
+    juce::Label* label;
+
 };
+
 
 class AbletonStyleBox : public juce::Slider
 {
 public:
+
     AbletonStyleBox();
     AbletonStyleBox(juce::RangedAudioParameter &rap, const juce::String &unitSuffix);
     ~AbletonStyleBox();
