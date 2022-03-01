@@ -4,12 +4,13 @@
 
 
 a normal equalizer
+
 1 Peak Filter, 2 Pass Filter
 
 
 
-need to be updated
+### need to be updated
 
 - on / off switch for each filter
-- FFT spectrum analyizer
-- justification when textbox editing
+- FFT spectrum analyzer
+- set juce::justification when textbox editing
